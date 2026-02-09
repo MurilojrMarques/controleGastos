@@ -3,7 +3,11 @@ package main
 import (
 	"log"
 
+	"github.com/MuriloJrMarques/financas-api/internal/controller"
+	"github.com/MuriloJrMarques/financas-api/internal/db"
 	"github.com/MuriloJrMarques/financas-api/internal/db/config"
+	"github.com/MuriloJrMarques/financas-api/internal/repository"
+	usecase "github.com/MuriloJrMarques/financas-api/internal/useCase"
 	"github.com/gin-gonic/gin"
 )
 
@@ -15,7 +19,13 @@ func main(){
 	}
 	defer postgresDB.Db.Close()
 
+	queries := db.New(postgresDB.Db)
+
+	transactionRepo := repository.NewTransactionRepository(queries)
 	
+	transactionUseCase := usecase.NewTransactionUseCase(transactionRepo)
+
+	transactionController := controller.NewTransactionController(transactionUseCase)
 	server := gin.Default()
 
 	server.Use(gin.Logger())
@@ -23,11 +33,7 @@ func main(){
 
 	v1 := server.Group("/api/v1")
 	{
-		v1.GET("/ping", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"message": "pong",
-			})
-		})
+		v1.POST("/transactions", transactionController.CreateTransaction)
 	}
 
 	if err := server.Run(":8080"); err != nil {
